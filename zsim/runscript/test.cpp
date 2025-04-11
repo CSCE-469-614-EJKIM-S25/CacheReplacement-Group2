@@ -1,0 +1,99 @@
+#include <test.h>
+
+bool Test::initializeArguments(int argc, char **argv)
+{
+    int opt;
+
+    while ((opt = getopt(argc, argv, "r:n:")) != -1)
+    {
+        switch (opt)
+        {
+        case 'r':
+            repl_policy_ = optarg;
+            break;
+        case 'n':
+            max_running_processes_ = std::atoi(optarg);
+            break;
+        }
+    }
+
+    if (!isValidMaxProcesses() || !isValidReplPolicy())
+    {
+        std::cerr << "Usage: " << argv[0] << " -r <repl_policy> [-n <max_running_processes>]\n";
+        std::cerr << "    repl_policy: LRU LFU SRRIP\n";
+        std::cerr << "    (optional) max_running_processes: >= 1 (set to 1 by default)\n";
+
+        return false;
+    }
+
+    return true;
+}
+
+void Test::synchronizeTests()
+{
+    int child_status;
+
+    for (int i = 0; i < benchmark_suites_.size(); ++i)
+    {
+        BenchmarkSuite curr_suite = benchmark_suites_.at(i);
+
+        for (int j = 0; j < curr_suite.getSuiteSize(); ++j)
+        {
+            int pid = fork();
+
+            if (pid != 0)
+            { // if it is the parent, then we want to collect the child pid and wait until it his sigstop
+                child_pids_.push_back(pid);
+                pid_benchmark_map_[pid] = curr_suite.getBenchmark(j);
+                waitpid(pid, &child_status, WUNTRACED);
+            }
+            else
+            { // stop the child process -> we only want the processes in the queue to run
+                std::cout << "Synchronizing process for: " << curr_suite.getBenchmark(j) << ", with pid: " << getpid() << std::endl;
+                raise(SIGSTOP);
+                char *args[] = {
+                    const_cast<char *>("./../hw4runscript"),
+                    const_cast<char *>(curr_suite.getSuiteName()),
+                    const_cast<char *>(curr_suite.getBenchmark(j)),
+                    const_cast<char *>(repl_policy_),
+                    NULL};
+                execvp(args[0], args);
+            }
+        }
+    }
+}
+
+void Test::runTests()
+{
+    std::set<pid_t> running_pids;
+    int child_status;
+
+    const int pad_width = 18; // only used for cout statements
+
+    while (!child_pids_.empty() || !running_pids.empty())
+    {
+        while (!child_pids_.empty() && (running_pids.size() < max_running_processes_))
+        {
+            pid_t stopped_pid = child_pids_.back();
+            child_pids_.pop_back();
+
+            kill(stopped_pid, SIGCONT); // restart the child process
+
+            std::cout << "▶ Running:   "
+                      << std::left << std::setw(pad_width) << pid_benchmark_map_[stopped_pid]
+                      << " [PID: " << stopped_pid << "]" << std::endl;
+
+            running_pids.insert(stopped_pid);
+        }
+
+        pid_t finished_pid = waitpid(-1, &child_status, 0);
+        if (finished_pid > 0)
+        {
+            std::cout << "✔ Finished:  "
+                      << std::left << std::setw(pad_width) << pid_benchmark_map_[finished_pid]
+                      << " [PID: " << finished_pid << "]" << std::endl;
+
+            running_pids.erase(finished_pid);
+        }
+    }
+}
