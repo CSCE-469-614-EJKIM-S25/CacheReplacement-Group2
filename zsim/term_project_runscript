@@ -12,7 +12,7 @@ else
     bench=$2
     repl=$3
 
-    directory="hw4"
+    directory="term_project"
 
     # your simulation results will be saved to outputs/term_project/$repl/$bench/
     if [ "$suite" = "SPEC" ]; then

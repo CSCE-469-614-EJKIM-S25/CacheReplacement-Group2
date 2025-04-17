@@ -29,7 +29,7 @@ bool Test::initializeArguments(int argc, char **argv)
     return true;
 }
 
-void Test::synchronizeTests()
+bool Test::synchronizeTests()
 {
     int child_status;
 
@@ -52,15 +52,23 @@ void Test::synchronizeTests()
                 std::cout << "Synchronizing process for: " << curr_suite.getBenchmark(benchmark_idx) << ", with pid: " << getpid() << std::endl;
                 raise(SIGSTOP);
                 char *args[] = {
-                    const_cast<char *>("./../hw4runscript"),
+                    const_cast<char *>(script_path_),
                     const_cast<char *>(curr_suite.getSuiteName()),
                     const_cast<char *>(curr_suite.getBenchmark(benchmark_idx)),
                     const_cast<char *>(repl_policy_),
                     NULL};
-                execvp(args[0], args);
+                int status_code = execvp(args[0], args);
+
+                if (status_code == -1)
+                {
+                    std::cerr << "execvp terminated abnormally! Check to ensure script path is valid." << std::endl;
+                    return false;
+                }
             }
         }
     }
+
+    return true;
 }
 
 void Test::runTests()

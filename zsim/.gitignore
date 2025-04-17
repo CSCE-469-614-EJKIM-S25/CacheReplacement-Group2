@@ -3,3 +3,7 @@ outputs
 .sconsign.dblite
 
 *.o
+
+# random outputs from errored benchmarks
+SPECtestformatmodifier_z.txt
+spooles.out

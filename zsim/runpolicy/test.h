@@ -20,6 +20,7 @@ private:
     const char *repl_policy_; // std:string view? --> look into this
     int max_running_processes_;
 
+    const char *script_path_ = "/home/ugrads/b/baileyfaulk2003/CSCE469/CacheReplacement-Group2/zsim/term_project_runscript"; // replace with your absolute path to script
     static inline const std::set<std::string> repl_policies = {"LRU", "LFU", "SRRIP"};
 
     std::vector<pid_t> child_pids_;
@@ -54,8 +55,10 @@ public:
      * the benchmark, recording the process ID, then stopping
      * the benchmark so that the benchmarks can be run in a
      * controlled manner
+     *
+     * @return Returns 1 if test were correctly synchronized, 0 otherwise.
      */
-    void synchronizeTests();
+    bool synchronizeTests();
 
     /**
      * @brief Runs benchmarks in a controlled manner such that
