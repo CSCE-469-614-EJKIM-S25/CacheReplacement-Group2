@@ -36,7 +36,7 @@ You need to compile the code each time you make a change. However, keep in mind 
 
 ### 4. Running Benchmarks
 
-There are two different programs that allow you to run the benchmarks: a shell script titled `hw4runscript` and a .cpp program titled `hw4runpolicy.cpp`. Instructions on how to run these are detailed below.
+There are two different programs that allow you to run the benchmarks: a shell script titled `hw4runscript` and a .cpp program titled `run_policy.cpp` (located in `runpolicy/`). Instructions on how to run these are detailed below.
 
 #### 4a. hw4runscript 
 
@@ -53,12 +53,13 @@ repl_policy: LRU LFU SRRIP
 ```
 The `&` is used so that the script can be run as a background process and you can continue to use the terminal. However, it is recommended to use `tmux`, a terminal multiplexer, to run the benchmarks. More details are below in 4c.
 
-#### 4b. hw4runpolicy.cpp
+#### 4b. run_policy.cpp & runpolicy.o
 
-The `hw4runpolicy.cpp` is a .cpp program that tests a single replacement policy on all the benchmarks required for this homework. The correct usage of the file is as follows:
+The `run_policy.cpp` is a .cpp program that tests a single replacement policy on all the benchmarks required for this homework. This file is located in the `run_policy/` folder in `zsim`. To create the executable from the Makefile, one can run the `make` command in the zsim folder. The Makefile will compile the files `benchmark_suite.cpp`, `test.cpp`, and `run_policy.cpp`, create the executable `runpolicy.o`, and place the executable in the `zsim` folder. The correct usage of the Makefile and the executable is as follows:
 ```
-$ g++ -std=c++17 -Wall -Wextra -Wpedantic -o hw4runpolicy.o hw4runpolicy.cpp
-$ ./hw4runpolicy.o -r <repl_policy> [-n <max_running_processes>] &
+$ make clean 
+$ make
+$ ./runpolicy.o -r <repl_policy> [-n <max_running_processes>] &
 ```
 where
 ```
@@ -67,13 +68,15 @@ repl_policy: LRU LFU SRRIP
 ```
 Once again, the `&` is used so the script can be run as a background process. 
 
-One thing to note is that the `<max_running_processes>` should be changed with EXTREME CAUTION. Ensure that you check with your system administrator to ensure you do not take up too many resources.
+**IMPORTANT NOTES**:
+- One thing to note is that the `<max_running_processes>` should be changed with EXTREME CAUTION. Ensure that you check with your system administrator to ensure you do not take up too many resources.
+- Furthermore, be mindful of when you are `make`-ing; ensure that you do not overwrite the binary while you are currently running a replcement policy with the executable. More information can be found below in 4c.
 
 #### 4c. Using tmux
 
 It is recommended that you use `tmux`, a terminal multiplexer, to run the benchmarks so that the benchmarks continue to run even if you are disconnected from your session.
 
-Examples of how you would use `tmux` for running both the `hw4runscript` and the `hw4runpolicy.cpp` are shown below. Keep in mind that the naming conventions used in the examples are optional; however, make sure you don't recompile and accidentally overwrite an existing executable that is running.
+Examples of how you would use `tmux` for running both the `hw4runscript` and the `runpolicy.cpp` are shown below. Keep in mind that the naming conventions used in the examples are optional; however, make sure you don't recompile and accidentally overwrite an existing executable that is running.
 
 ##### hw4runscript with tmux
 ```
@@ -81,11 +84,11 @@ $ tmux new -s run_<repl_policy>_<benchmark>
 $ ./hw4runscript <suite> <benchmark> <repl_policy> &
 ```
 
-##### hw4runpolicy.cpp with tmux
+##### run_policy.cpp & runpolicy.o with tmux
+**NOTE**: If you `make` the `runpolicy.o` executable while you are currently testing a replacement policy with the `runpolicy.o`, it is likely that you will overwrite the current binary and the program execution will fail. If the `runpolicy.o` executable is already created, then there is no need to re`make` the executable; simply run the executable with the desired replacement policy. 
 ```
 $ tmux new -s run_<repl_policy>
-$ g++ -std=c++17 -Wall -Wextra -Wpedantic -o hw4runpolicy_<repl_policy>.o hw4runpolicy.cpp 
-$ ./hw4runpolicy_<repl_policy>.o -r <repl_policy> -n <max_running_processes> &
+$ ./runpolicy.o -r <repl_policy> -n <max_running_processes> &
 ```
 To exit out of the `tmux` session: <kbd>Ctrl</kbd> + <kbd>b</kbd>, <kbd>d</kbd>
 
