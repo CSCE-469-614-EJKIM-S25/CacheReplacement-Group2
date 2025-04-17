@@ -1,9 +1,6 @@
 #include "benchmark_suite.h"
 #include "test.h"
 
-#include <thread>
-#include <chrono>
-
 int main(int argc, char **argv)
 {
 
@@ -20,8 +17,8 @@ int main(int argc, char **argv)
      * https://www.cs.princeton.edu/techreports/2008/811.pdf
      *
      **/
-    BenchmarkSuite PARSEC(const_cast<char *>("PARSEC"), {"blackscholes", "bodytrack", "canneal", "dedup",
-                                                         "fluidanimate", "freqmine", "streamcluster",
+    BenchmarkSuite PARSEC(const_cast<char *>("PARSEC"), {"blackscholes", "bodytrack", "canneal", /*"dedup",*/
+                                                         "fluidanimate", /*"freqmine",*/ "streamcluster",
                                                          "swaptions", "x264"});
 
     /*
@@ -47,8 +44,6 @@ int main(int argc, char **argv)
 
     std::cout << "--------------- " << test.getReplPolicy() << " child processes SUCCESSFULLY synchronized -----------------" << std::endl;
     std::cout << std::endl;
-
-    std::this_thread::sleep_for(std::chrono::seconds(5));
 
     std::cout << "--------------- STARTING " << test.getReplPolicy() << " tests!  |";
     std::cout << " Will run, at maximum, " << test.getMaxProcesses() << " at a time -----------------" << std::endl;
