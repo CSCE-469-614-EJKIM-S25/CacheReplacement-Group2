@@ -20,8 +20,8 @@ int main(int argc, char **argv)
      * https://www.cs.princeton.edu/techreports/2008/811.pdf
      *
      **/
-    BenchmarkSuite PARSEC(const_cast<char *>("PARSEC"), {"blackscholes", "bodytrack", "canneal", "dedup",
-                                                         "fluidanimate", "freqmine", "streamcluster",
+    BenchmarkSuite PARSEC(const_cast<char *>("PARSEC"), {"blackscholes", "bodytrack", "canneal", /*"dedup",*/
+                                                         "fluidanimate", /*"freqmine",*/ "streamcluster",
                                                          "swaptions", "x264"});
 
     /*
