@@ -1,4 +1,4 @@
-#include <benchmark_suite.h>
+#include "benchmark_suite.h"
 
 BenchmarkSuite::BenchmarkSuite() : suite_name_(""), benchmarks_(), num_benchmarks_(0) {}
 

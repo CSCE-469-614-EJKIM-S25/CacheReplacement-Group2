@@ -1,4 +1,4 @@
-#include <test.h>
+#include "test.h"
 
 bool Test::initializeArguments(int argc, char **argv)
 {
@@ -33,28 +33,28 @@ void Test::synchronizeTests()
 {
     int child_status;
 
-    for (int i = 0; i < benchmark_suites_.size(); ++i)
+    for (size_t benchmark_suite_idx = 0; benchmark_suite_idx < benchmark_suites_.size(); ++benchmark_suite_idx)
     {
-        BenchmarkSuite curr_suite = benchmark_suites_.at(i);
+        BenchmarkSuite curr_suite = benchmark_suites_.at(benchmark_suite_idx);
 
-        for (int j = 0; j < curr_suite.getSuiteSize(); ++j)
+        for (size_t benchmark_idx = 0; benchmark_idx < curr_suite.getSuiteSize(); ++benchmark_idx)
         {
             int pid = fork();
 
             if (pid != 0)
-            { // if it is the parent, then we want to collect the child pid and wait until it his sigstop
+            { // If it is the parent, we want to collect the child pid and wait until it hits sigstop.
                 child_pids_.push_back(pid);
-                pid_benchmark_map_[pid] = curr_suite.getBenchmark(j);
+                pid_benchmark_map_[pid] = curr_suite.getBenchmark(benchmark_idx);
                 waitpid(pid, &child_status, WUNTRACED);
             }
             else
-            { // stop the child process -> we only want the processes in the queue to run
-                std::cout << "Synchronizing process for: " << curr_suite.getBenchmark(j) << ", with pid: " << getpid() << std::endl;
+            { // If it is the child, we want to stop the process because we only want the processes in the queue to run.
+                std::cout << "Synchronizing process for: " << curr_suite.getBenchmark(benchmark_idx) << ", with pid: " << getpid() << std::endl;
                 raise(SIGSTOP);
                 char *args[] = {
                     const_cast<char *>("./../hw4runscript"),
                     const_cast<char *>(curr_suite.getSuiteName()),
-                    const_cast<char *>(curr_suite.getBenchmark(j)),
+                    const_cast<char *>(curr_suite.getBenchmark(benchmark_idx)),
                     const_cast<char *>(repl_policy_),
                     NULL};
                 execvp(args[0], args);

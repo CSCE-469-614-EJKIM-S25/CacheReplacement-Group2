@@ -12,7 +12,7 @@
 #include <string>
 #include <iomanip>
 
-#include <benchmark_suite.h>
+#include "benchmark_suite.h"
 
 class Test
 {
