@@ -167,9 +167,10 @@ BaseCache* BuildCacheBank(Config& config, const string& prefix, g_string& name, 
         rp = new RandReplPolicy(candidates);
     } else if (replType == "SRRIP") {
         // max value of RRPV, you need to pass it to your SRRIP constructor
-        uint32_t rpvMax = 3;
+        int8_t rpvMax = 3;
         assert(isPow2(rpvMax + 1));
         // add your SRRIP construction code here
+        rp = new SRRIPReplPolicy(rpvMax, numLines)
 
     } else if (replType == "WayPart" || replType == "Vantage" || replType == "IdealLRUPart") {
         if (replType == "WayPart" && arrayType != "SetAssoc") panic("WayPart replacement requires SetAssoc array");
