@@ -2,7 +2,6 @@
 #define REPL_SHIP_H_
 
 #include "repl_policies.h"
-#include <unordered_map>
 
 // SHIP
 class SHIPReplPolicy : public ReplPolicy
@@ -16,14 +15,17 @@ protected:
     uint64_t SHCT_size;
     uint64_t signature_size;
 
-    uint64_t *id_to_lineAddr;
-
     uint64_t evicted_cacheID;
 
     uint64_t addr_size;
 
-    // unordered_map of outcome bits, indexed by addr line
-    std::unordered_map<uint64_t, bool> outcome_bits;
+    struct BlockMeta
+    {
+        uint64_t signature;
+        bool outcome_bit;
+    };
+    BlockMeta *block_meta;
+
 
 
 public:
@@ -35,7 +37,7 @@ public:
           addr_size(64)
     {
         SHCT = gm_calloc<uint64_t>(SHCT_size);
-        id_to_lineAddr = gm_calloc<uint64_t>(numLines);
+        block_meta = gm_calloc<BlockMeta>(numLines);
 
         signature_size = logBase2(SHCT_size);
 
@@ -44,15 +46,17 @@ public:
             SHCT[i] = maxRPV;
         }
 
-        for (uint64_t i = 0; i < numLines; ++i)
+        for (uint32_t i = 0; i < numLines; ++i)
         {
-            id_to_lineAddr[i] = UINT64_MAX;
+            block_meta[i].signature = 0;
+            block_meta[i].outcome_bit = false;
         }
     }
 
     ~SHIPReplPolicy()
     {
         gm_free(SHCT);
+        gm_free(block_meta);
     }
 
     uint64_t logBase2(uint64_t n)
@@ -83,39 +87,40 @@ public:
 
     void update(uint32_t id, const MemReq *req)
     {
-        uint64_t lineAddr = req->lineAddr;
-        uint64_t signature_m = create_signature(lineAddr);
+        BlockMeta &meta = block_meta[id];
 
         if (evicted_cacheID == static_cast<uint64_t>(id))
         { // eviction
-            uint64_t evicted_lineAddr = id_to_lineAddr[id];
 
-            if (outcome_bits.find(evicted_lineAddr) != outcome_bits.end() && outcome_bits[evicted_lineAddr] != true && evicted_lineAddr != UINT64_MAX) 
+            // could probably move this if statement to replaced function
+            if (meta.outcome_bit != true)
             {
-                if (SHCT[create_signature(evicted_lineAddr)] > 0)
-                    --SHCT[create_signature(evicted_lineAddr)];
+                if (SHCT[meta.signature] > 0)
+                    --SHCT[meta.signature];
             }
 
-            if (SHCT[signature_m] == 0)
-                SHCT[signature_m] = maxRPV;
+            meta.outcome_bit = false;
+            meta.signature = create_signature(req->lineAddr);
+
+            if (SHCT[meta.signature] == 0)
+                SHCT[meta.signature] = maxRPV; // predict distance re-reference
             else
-                SHCT[signature_m] = maxRPV >> 1;
+                SHCT[meta.signature] = maxRPV >> 1; // predict intermediate re-reference
         }
         else
         { // hit
-            outcome_bits[lineAddr] = true;
+            meta.outcome_bit = true;
 
-            if (SHCT[signature_m] < maxRPV)
-                ++SHCT[signature_m];
+            if (SHCT[meta.signature] < maxRPV)
+                ++SHCT[meta.signature];
         }
 
-        id_to_lineAddr[id] = lineAddr;
-        evicted_cacheID = -1;
+        evicted_cacheID = UINT64_MAX;
     }
 
     void replaced(uint32_t id)
     {
-        evicted_cacheID = static_cast<int>(id);
+        evicted_cacheID = static_cast<uint64_t>(id);
     }
 
 
@@ -148,10 +153,9 @@ public:
 private:
     inline uint64_t score(uint32_t id)
     {
-        uint64_t cand_lineAddr = id_to_lineAddr[id];
-        uint64_t cand_signature = create_signature(cand_lineAddr);
+        BlockMeta meta = block_meta[id];
 
-        return (SHCT[cand_signature]);
+        return (SHCT[meta.signature]);
     }
 };
 
