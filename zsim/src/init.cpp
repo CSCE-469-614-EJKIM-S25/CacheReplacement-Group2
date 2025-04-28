@@ -208,14 +208,15 @@ BaseCache *BuildCacheBank(Config &config, const string &prefix, g_string &name, 
         int8_t rpvMax = 3;
         assert(isPow2(rpvMax + 1));
         // add your SRRIP construction code here
-        rp = new SRRIPReplPolicy(rpvMax, numLines);
+        rp = new SRRIPReplPolicy(numLines, rpvMax);
     }
     else if (replType == "SHiP")
     {
-        uint64_t rpvMax = 7;
+        uint64_t rpvMax = 3;
         assert(isPow2(rpvMax + 1));
+        uint64_t maxSHCTVal = 7;
         uint64_t SHCT_size = 16384;
-        rp = new SHIPReplPolicy(rpvMax, numLines, SHCT_size);
+        rp = new SHIPReplPolicy(rpvMax, numLines, maxSHCTVal, SHCT_size);
     }
     else if (replType == "WayPart" || replType == "Vantage" || replType == "IdealLRUPart")
     {
