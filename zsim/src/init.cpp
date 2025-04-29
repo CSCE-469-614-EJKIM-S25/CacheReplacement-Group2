@@ -54,6 +54,7 @@
 #include "null_core.h"
 #include "ooo_core.h"
 #include "part_repl_policies.h"
+#include "repl_ehc.h"
 #include "repl_rrip.h"
 #include "repl_ship.h"
 #include "repl_policies.h"
@@ -77,7 +78,6 @@
 #include "virt/port_virtualizer.h"
 #include "weave_md1_mem.h" //validation, could be taken out...
 #include "zsim.h"
-#include "ehc_repl.h"
 
 extern void EndOfPhaseActions(); // in zsim.cpp
 

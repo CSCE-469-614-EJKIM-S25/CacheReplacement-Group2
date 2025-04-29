@@ -123,7 +123,7 @@ public:
         CHC_array[id] = 0;
       }
       // Expected Further Hits down
-      if (EFH_array[id] > 0)
+      // if (EFH_array[id] > 0)
         EFH_array[id]--;
     }
   }
