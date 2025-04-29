@@ -160,7 +160,21 @@ The output files are all located in the following file path:
 /zsim/outputs/term_project/<replacement_policy>/<benchmark>/zsim.out
 ```
 
-The output file format will depend on the benchmark suite that is run (SPEC or PARSEC).
+A python script was used to plot the data after a trial was finished. This python script would first create a csv file of the data, then would create plots of the data using a grapher. Details of how to use this python file are detailed in this section below. 
+
+The output file format will depend on the benchmark suite that is run (SPEC or PARSEC); further information regarding what the output file looks like is detailed farther down in this section. 
+
+### Output Data CSV Processing
+A Python program called `data_extractor.py` exists in the main zsim directory. This program will parse through all of the zsim.out files in the outputs directory. This includes parsing through each replacement policy and each benchmark within that replacement policy. The program will read and write from the term_project directory. The program outputs a CSV file called `benchmark_results.csv` in this term_project folder. This csv will contain all desired data including cycles, cCycles, instrs, mGETS, mGETXIM, and mGETXSM.
+
+**NOTE**: A relative path is currently in place to dictate the read and write directories for this program seen as `RESULTS_DIR = ./outputs/term_project`. Ideally, a user should use an absolute path to ensure no issues occur. This can be done by editing the `RESULTS_DIR = "./outputs/term_project/"`and `DATA_DIR = "./outputs/term_project/"` lines at the top of the program file. 
+
+
+### Data Plotter
+Once the data is extracted and inserted into a usable CSV file, the necessary plots can be obtained by running the `data_plotter.py` file. This will parse through the csv file and graph the total cycles, MPKI, and IPC for each benchmark and each replacement policy. The plots are pivot plots. Again, the results of this program will be outputted into the outputs/term_project directory.
+
+**NOTE**: Similar to above, ideally use an absolute path. Change `RESULTS_DIR = "./outputs/term_project/"` to your absolute path to the outsputs/term_project directory.
+
 
 ### SPEC
 The SPEC benchmark suite has programs that are ran single threaded, which means there is only one shared L3 cache. The format of the output that is relevant to us is how the CPU and L3 cache performs. 
