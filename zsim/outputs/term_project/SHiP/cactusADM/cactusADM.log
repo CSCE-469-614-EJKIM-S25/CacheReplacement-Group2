@@ -1,0 +1,9 @@
+[H] Starting zsim, built Tue Apr 29 17:33:57 CDT 2025 (rev no git repo)
+[H] Creating global segment, 1024 MBs
+[H] Global segment shmid = 4489226
+[H] Deadlock detection ON
+[S 0] Started instance
+[S 0] Started RR scheduler, quantum=10000 phases
+[S 0] Panic on build/opt/init.cpp:304: l3-0: Invalid replacement type SHiP
+[H] Child 808262 done
+[H] Panic on build/opt/zsim_harness.cpp:118: Child issued a panic, killing simulation
