@@ -1,4 +1,4 @@
-# casim
+# CSCE 469 Final Project - Cache Replacement Policy Exploration
 Computer Architecture Simulation Infrastructure for CSCE 614 Computer Architecture
 
 ## Description
