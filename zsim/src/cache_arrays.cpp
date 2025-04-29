@@ -59,10 +59,11 @@ uint32_t SetAssocArray::preinsert(const Address lineAddr, const MemReq* req, Add
 }
 
 void SetAssocArray::postinsert(const Address lineAddr, const MemReq* req, uint32_t candidate) {
-    rp->replaced(candidate);
+    rp->replaced(candidate, array[candidate]);
     array[candidate] = lineAddr;
     rp->update(candidate, req);
 }
+
 
 
 /* ZCache implementation */
@@ -209,7 +210,7 @@ void ZArray::postinsert(const Address lineAddr, const MemReq* req, uint32_t cand
     lookupArray[swapArray[swapArrayLen-1]] = candidate; //note that in preinsert() we walk the array backwards when populating swapArray, so the last elem is where the new line goes
     //info("Inserting lineId %d in position %d", candidate, swapArray[swapArrayLen-1]);
 
-    rp->replaced(candidate);
+    rp->replaced(candidate, array[candidate]);
     array[candidate] = lineAddr;
     rp->update(candidate, req);
 

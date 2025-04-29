@@ -48,7 +48,7 @@ class ReplPolicy : public GlobAlloc {
         virtual void setCC(CC* _cc) {cc = _cc;}
 
         virtual void update(uint32_t id, const MemReq* req) = 0;
-        virtual void replaced(uint32_t id) = 0;
+        virtual void replaced(uint32_t id, Address expunged_address) = 0;
 
         virtual uint32_t rankCands(const MemReq* req, SetAssocCands cands) = 0;
         virtual uint32_t rankCands(const MemReq* req, ZCands cands) = 0;
