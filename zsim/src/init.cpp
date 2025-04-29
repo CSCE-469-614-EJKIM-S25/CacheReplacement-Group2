@@ -77,6 +77,7 @@
 #include "virt/port_virtualizer.h"
 #include "weave_md1_mem.h" //validation, could be taken out...
 #include "zsim.h"
+#include "ehc_repl.h"
 
 extern void EndOfPhaseActions(); // in zsim.cpp
 
@@ -218,6 +219,13 @@ BaseCache *BuildCacheBank(Config &config, const string &prefix, g_string &name, 
         uint64_t SHCT_size = 16384;
         rp = new SHIPReplPolicy(rpvMax, numLines, maxSHCTVal, SHCT_size);
     }
+    else if (replType == "EHC")
+    {
+      int8_t rpvMax = 3;
+      assert(isPow2(rpvMax+1));
+      rp = new EHCReplPolicy(rpvMax, numLines);
+    }
+    
     else if (replType == "WayPart" || replType == "Vantage" || replType == "IdealLRUPart")
     {
         if (replType == "WayPart" && arrayType != "SetAssoc")
