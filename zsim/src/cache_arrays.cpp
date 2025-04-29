@@ -65,7 +65,6 @@ void SetAssocArray::postinsert(const Address lineAddr, const MemReq* req, uint32
 }
 
 
-
 /* ZCache implementation */
 
 ZArray::ZArray(uint32_t _numLines, uint32_t _ways, uint32_t _candidates, ReplPolicy* _rp, HashFamily* _hf) //(int _size, int _lineSize, int _assoc, int _zassoc, ReplacementPolicy<T>* _rp, int _hashType)
