@@ -8,7 +8,14 @@ class EHCReplPolicy : public ReplPolicy {
     protected:
         // add class member variables here
         int8_t maxRPV;
-        int8_t* array;    // array storing RRPV values 
+
+        typedef struct {
+          int8_t RPV;
+          uint64_t lineAddr;
+        } RPVMeta;
+        RPVMeta* array; // array for storing RPV values
+
+
         uint32_t numLines; //number of lines in the cache
         
         uint8_t currentHitCounter; 
@@ -29,7 +36,7 @@ class EHCReplPolicy : public ReplPolicy {
     public:
         // add member methods here, refer to repl_policies.h
         explicit EHCReplPolicy(int8_t _maxRPV, uint32_t _numLines) : maxRPV(_maxRPV), numLines(_numLines) {
-            array = gm_calloc<int8_t>(numLines);
+            array = gm_calloc<RPVMeta>(numLines);
             HHT = (HHTEntry**) calloc(128, sizeof(HHTEntry*));
             for (int i = 0; i < 128; i++) {
               HHT[i] = (HHTEntry*) calloc(16, sizeof(HHTEntry));
@@ -39,7 +46,7 @@ class EHCReplPolicy : public ReplPolicy {
 
             // initialize all invalid entries to max rpv
             for (uint32_t i = 0; i < numLines; ++i) {
-                array[i] = maxRPV;
+                array[i].RPV = maxRPV;
                 CHC_array[i] = 0;
                 EFH_array[i] = 1; //NEED CONFIRMATION ON INITIALIZATION
             }
@@ -58,8 +65,8 @@ class EHCReplPolicy : public ReplPolicy {
         void increment_all() { // increment the RRPV for all the array items by 1
             for (uint32_t i = 0; i < numLines; ++i)
             {
-                if (array[i] < maxRPV)
-                    ++array[i];
+                if (array[i].RPV < maxRPV)
+                    ++array[i].RPV;
             }
         }
 
@@ -68,9 +75,12 @@ class EHCReplPolicy : public ReplPolicy {
             uint32_t index = (req->lineAddr >> 6) & 0x7F; //next 7 bits for HHT set index, assuming 128 sets like th            
             // replaced() function sets the RRPV value to -1 so that we can tell
             // when we are updating after a cache hit or cache miss
-            if (array[id] == -1){ //MISS
+            if (array[id].RPV == -1){ //MISS
                 // if recently replaced, then set RRPV to 2^M - 2 (M = RRPV bits)
-                array[id] = 2;
+                array[id].RPV = 2;
+
+                // change the array's lineAddr to the new lineAddr
+                array[id].lineAddr = req->lineAddr;
                 
                 //Set CHC to 0
                 CHC_array[id] = 0;
@@ -79,18 +89,18 @@ class EHCReplPolicy : public ReplPolicy {
                 // Now need to calculate EHR of new cache block
                 HHTEntry* entry = searchHHT(tag, index);
                 
-                if (entry == null) {
+                if (entry == NULL) {
                   //if the new cache block isn't in the HHT, set the EHR to 1
-                  EHR_array[id] = 1;
+                  EFH_array[id] = 1;
                 }
                 else {
                   //if the new cache block is already in the HHT, set the EHR to the average of the HCQ
-                  EHR_array[id] = (entry->hitCountQueue[0] + entry->hitCountQueue[1] + entry->hitCountQueue[2] + entry->hitCountQueue[3] + 2) / 4; 
+                  EFH_array[id] = (entry->hitCountQueue[0] + entry->hitCountQueue[1] + entry->hitCountQueue[2] + entry->hitCountQueue[3] + 2) / 4; 
                 } 
             }
             else { //HIT
                 // RRPV to 0
-                array[id] = 0;
+                array[id].RPV = 0;
                 
                 // Current Hit Counter up, if it maxes out, then make sure to update the HHT
                 CHC_array[id]++;
@@ -175,43 +185,54 @@ class EHCReplPolicy : public ReplPolicy {
         }
           
           
-        void replaced(uint32_t id, Address evicted_address) {
+        void replaced(uint32_t id) {
             //Flag the block as replaced for SRRIP and EHC
-            array[id] = -1;
+            array[id].RPV = -1;
             
             // Now we record the CHC and push it to the front of the queue
-            updateHHT(id, evicted_address)
+            updateHHT(id, array[id].lineAddr);
         }
 
         template <typename C> inline uint32_t rank(const MemReq* req, C cands) {             
             uint32_t bestCand = -1;
             int32_t bestScore = INT32_MAX;
-            for (auto ci = cands.begin(); ci != cands.end(); ci.inc()) {
-                int32_t s = score(*ci);
+            while(true)
+            {
+              for (auto ci = cands.begin(); ci != cands.end(); ci.inc()) {
+                  int32_t s = score(*ci);
 
-                if (s <= bestScore) {
-                    bestCand = *ci;
-                    bestScore = s;
-                }
+                  if (s <= bestScore) {
+                      bestCand = *ci;
+                      bestScore = s;
+                  }
 
-                if (bestScore == -3)
-                //take first -3  (minimum because EHR=0, RRPV=3)
-                    return bestCand;
-            }
-            //if all rrpv values are 3 (maxed out) and we still don't have a candidate with -3 score
-            //return the most recent best candidate
-            bool all_3 = true;
-            for (int i = 0; i < numLines; ++i) {
-              if (array[i] != 3) {
-                all_3 = false;
-                break;
+                  if (bestScore == -3)
+                  //take first -3  (minimum because EHR=0, RRPV=3)
+                      return bestCand;
               }
+              //if all rrpv values are 3 (maxed out) and we still don't have a candidate with -3 score
+              //return the most recent best candidate
+              bool all_3 = true;
+              for (uint32_t i = 0; i < numLines; ++i) {
+                if (array[i].RPV != 3) {
+                  all_3 = false;
+                  break;
+                }
+              }
+              if (all_3) return bestCand;            
+
+              // increments all RRPV's by 1
+              for (uint32_t i = 0; i < numLines; ++i) {
+                if (array[i].RPV < 3) {
+                  ++array[i].RPV;
+                }
+              }
+
             }
-            if (all_3) return bestCand;            
             
             // if bestScore > -3, increment all the RPV values
-            this->increment_all();
-            return rank(req, cands);
+            // this->increment_all();
+            // return rank(req, cands);
         }
 
         DECL_RANK_BINDINGS;
@@ -219,7 +240,7 @@ class EHCReplPolicy : public ReplPolicy {
     private:
         inline int32_t score(uint32_t id) {
             //EHR - RRPV
-            return (int32_t)(EFH_array[id] - array[id]);
+            return (int32_t)(EFH_array[id] - array[id].RPV);
         }
 };
 #endif // EHC_REPL_H_
