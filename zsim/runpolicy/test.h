@@ -21,7 +21,7 @@ private:
     int max_running_processes_;
 
     const char *script_path_ = "/home/ugrads/b/baileyfaulk2003/CSCE469/CacheReplacement-Group2/zsim/term_project_runscript"; // replace with your absolute path to script
-    static inline const std::set<std::string> repl_policies = {"LRU", "LFU", "SRRIP", "NRU", "Rand", "TreeLRU", "EHC"};
+    static inline const std::set<std::string> repl_policies = {"LRU", "LFU", "SRRIP", "NRU", "Rand", "TreeLRU", "EHC", "SHiP"};
 
     std::vector<pid_t> child_pids_;
     std::vector<BenchmarkSuite> benchmark_suites_;
