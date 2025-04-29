@@ -4,86 +4,94 @@
 #include "repl_policies.h"
 
 // Static RRIP
-class SRRIPReplPolicy : public ReplPolicy
-{
-protected:
-    // add class member variables here
-    int8_t maxRPV;
-    int8_t *array;
-    uint32_t numLines;
+/*
+Want to attach a RRPV value to each candidate. They are initialized
+to 3 and subsequent transformations follow the below steps:
 
-public:
-    // add member methods here, refer to repl_policies.h
-    explicit SRRIPReplPolicy(int8_t _maxRPV, uint32_t _numLines) : maxRPV(_maxRPV), numLines(_numLines)
-    {
-        array = gm_calloc<int8_t>(numLines);
 
-        // initialize all invalid entries to max rpv
-        for (uint32_t i = 0; i < numLines; ++i)
-        {
-            array[i] = maxRPV;
-        }
-    }
+Cache hit:
+    - Set RRPV of block to 0
 
-    ~SRRIPReplPolicy()
-    {
-        gm_free(array);
-    }
+Cache Miss:
+    1. Search for first 3 from left
+    2. If 3 found, go to step 5     
+    3. Increment all RRPV's
+    4. Go to step 1)
+    5. Replace block and set RRPV to 2    
+*/
 
-    void increment_all()
-    { // increment the RRPV for all the array items by 1
-        for (uint32_t i = 0; i < numLines; ++i)
-        {
-            if (array[i] < maxRPV)
-                ++array[i];
-        }
-    }
 
-    void update(uint32_t id, const MemReq *req)
-    { // sets the RRPV value to zero on cache hit
-        // replaced() function sets the RRPV value to -1 so that we can tell
-        // when we are updating after a cache hit or cache miss
-        if (array[id] == -1) // if recently replaced, then set RRPV to 2^M - 2 (M = RRPV bits)
-            array[id] = 2;
-        else // if it is a hit, then we set RRPV value to zero
-            array[id] = 0;
-    }
 
-    void replaced(uint32_t id)
-    {
-        array[id] = -1;
-    }
+class SRRIPReplPolicy : public ReplPolicy {
+    protected:
+        // add class member variables here
+        uint32_t numLines;
+        uint32_t rpvmax;
+        uint32_t* rrpv_array;
+        bool* recently_inserted;
 
-    template <typename C>
-    inline uint32_t rank(const MemReq *req, C cands)
-    {
-        uint32_t bestCand = -1;
-        int8_t bestScore = 0;
-        for (auto ci = cands.begin(); ci != cands.end(); ci.inc())
-        {
-            int8_t s = score(*ci);
 
-            if (s >= bestScore)
-            {
-                bestCand = *ci;
-                bestScore = s;
+    public:
+        // add member methods here, refer to repl_policies.h
+        // constructor
+        explicit SRRIPReplPolicy(uint32_t _numLines, uint32_t _rpvmax) : numLines(_numLines), rpvmax(_rpvmax) {
+            // this array holds the RRPV values for each cache line
+            rrpv_array = gm_calloc<uint32_t>(numLines);
+            recently_inserted = gm_calloc<bool>(numLines); // Allocate space for insertion flags
+
+            // initialize each element to 3 as per the SRRIP policy.
+            for (uint32_t i = 0; i < numLines; i++) {
+                rrpv_array[i] = 3;
+                recently_inserted[i] = false;
             }
-
-            if (bestScore == this->maxRPV)
-                return bestCand;
+        }
+        // desctructor
+        ~SRRIPReplPolicy() {
+            gm_free(rrpv_array);
         }
 
-        // if bestScore < maxRPV, increment all the RPV values
-        this->increment_all();
-        return rank(req, cands);
-    }
+        void update(uint32_t id, const MemReq* req) {
+            // The update() method is called on a hit. On a hit
+            // we must set the RRPV value to 0. This function is also
+            // called on a miss and we don't want to set it to zero when this
+            // occurs. Thus, check if RRPV is 3 first
+            if (!recently_inserted[id]) {
+                rrpv_array[id] = 0;
+            }
+            recently_inserted[id] = false;
+        }
 
-    DECL_RANK_BINDINGS;
+        void replaced(uint32_t id) {
+            // replaced is only called on a miss. Set to 2
+            rrpv_array[id] = 2;
+            recently_inserted[id] = true;
+        }
 
-private:
-    inline int8_t score(uint32_t id)
-    {
-        return (array[id]);
-    }
+        template <typename C> inline uint32_t rank(const MemReq* req, C cands) {
+            // loop through and determine candidate to evict
+            while (true) {
+                // find first element with RRPV of 3
+                for (auto ci = cands.begin(); ci != cands.end(); ci.inc()) {
+                    // replace block 
+                    if (rrpv_array[*ci] == 3) {
+                        return *ci;
+                    }
+                }
+
+                // if no element w/ RRPV = 3, increment all RRPV's
+                for (auto ci = cands.begin(); ci != cands.end(); ci.inc()) {
+                    // cannot increment above 3
+                    if (rrpv_array[*ci] < 3) {
+                        // increment
+                        rrpv_array[*ci]++;
+                    }
+                }
+
+                // go back to finding first RRPV=3 from left.
+            }
+        }
+        
+        DECL_RANK_BINDINGS;
+    
 };
 #endif // RRIP_REPL_H_
